@@ -1,0 +1,36 @@
+# Render Blueprint – deploys the Blu Chip site as a free web service.
+services:
+  - type: web
+    name: bluchip-website
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: node server.js
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      # Review mode: password-protected, submissions are NOT emailed.
+      - key: PREVIEW_MODE
+        value: "true"
+      - key: PREVIEW_USER
+        value: review
+      - key: PREVIEW_PASSWORD
+        sync: false        # you'll be asked to type this in Render's dashboard (e.g. OliWood5)
+      - key: MAIL_TO
+        value: oliver@bc-compliance.co.uk,kelly_pete@icloud.com
+      - key: MAIL_TO_QUOTES
+        value: oliver@bc-compliance.co.uk,kelly_pete@icloud.com
+      - key: MAIL_TO_APPOINTMENTS
+        value: oliver@bc-compliance.co.uk,kelly_pete@icloud.com
+      - key: MAIL_FROM
+        value: Blu Chip Compliance <forms@bc-compliance.co.uk>
+      # Fill these in only when you're ready to send real emails (and set PREVIEW_MODE to false):
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false

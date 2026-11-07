@@ -1,0 +1,57 @@
+const sections = [
+  { title: 'About you', fields: [
+    { id: 'name', label: 'Your name', type: 'text', required: true },
+    { id: 'company', label: 'Company (if applicable)', type: 'text' },
+    { id: 'role', label: 'You are the…', type: 'select', required: true, options: ['Client / property owner', 'Architect / designer', 'Contractor / builder', 'Developer', 'Agent / project manager', 'Other'] },
+    { id: 'email', label: 'Email', type: 'email', required: true },
+    { id: 'phone', label: 'Telephone', type: 'tel', required: true },
+  ]},
+  { title: 'The project', fields: [
+    { id: 'siteStreet', label: 'Site address (building name / number and street)', type: 'text', required: true },
+    { id: 'siteTown', label: 'Town / city', type: 'text', required: true },
+    { id: 'sitePostcode', label: 'Postcode', type: 'text', required: true },
+    { id: 'projectType', label: 'Type of project', type: 'select', required: true, options: ['New dwelling(s)', 'Extension / alteration – domestic', 'Loft conversion', 'Internal alterations – commercial / office', 'Change of use', 'New commercial / industrial building', 'Conversion to flats / HMO', 'Other'] },
+    { id: 'buildingUse', label: 'Building use', type: 'select', required: true, options: ['Domestic', 'Commercial', 'Mixed use', 'Other'] },
+    { id: 'description', label: 'Description of the proposed works', type: 'textarea', required: true, help: 'A few lines is fine – what is being built or altered, and roughly how big?' },
+    { id: 'storeys', label: 'Number of storeys (proposed)', type: 'number' },
+    { id: 'hrbCheck', label: 'Will the building be at least 18m tall or have 7+ storeys, AND contain two or more homes (or be a care home or hospital)?', type: 'yesno', required: true },
+    { id: 'hrbNote', type: 'note', tone: 'warn', showIf: { id: 'hrbCheck', is: 'Yes' },
+      text: 'That would make it a higher risk building. Building control for these is carried out by the Building Safety Regulator, not by a Registered Building Control Approver, so we may not be able to quote. Please submit anyway or call us and we will point you in the right direction.' },
+  ]},
+  { title: 'Programme and status', fields: [
+    { id: 'planning', label: 'Planning permission', type: 'select', options: ['Not required / permitted development', 'Not yet submitted', 'Submitted – awaiting decision', 'Granted'] },
+    { id: 'drawings', label: 'Drawings available', type: 'select', options: ['Full set of drawings', 'Partial / concept drawings', 'Not yet'] },
+    { id: 'value', label: 'Approximate construction cost', type: 'select', options: ['Under £50,000', '£50,000 – £150,000', '£150,000 – £500,000', '£500,000 – £1 million', '£1 million – £5 million', 'Over £5 million', 'Not sure'] },
+    { id: 'startDate', label: 'Target start on site', type: 'date' },
+    { id: 'previousBc', label: 'Has another building control body already been involved?', type: 'select', options: ['No', 'Yes – Local Authority', 'Yes – another Registered Building Control Approver / Approved Inspector', 'Work has already started'] },
+  ]},
+  { title: 'Anything else?', fields: [
+    { id: 'notes', label: 'Further information or questions', type: 'textarea' },
+    { id: 'howHeard', label: 'How did you hear about us?', type: 'select', options: ['Recommendation', 'Search engine', 'Architect / designer', 'Previous client', 'Other'] },
+    { id: 'consent', label: 'I agree that Blu Chip Compliance may contact me about this enquiry and store my details as described in the Privacy Notice.', type: 'check', required: true },
+  ]},
+];
+
+module.exports = {
+  id: 'quote',
+  sections,
+  uploads: { label: 'Drawings and documents (optional)', help: 'Plans, drawings, planning decision notice, etc. Up to 5 files, 10 MB each.' },
+  requireOneOf: [],
+  submitLabel: 'REQUEST MY QUOTE',
+  refOf: (b, gen) => gen,
+  site: b => [b.siteStreet, b.siteTown, b.sitePostcode].filter(Boolean).join(', '),
+  replyTo: b => b.email,
+  subject: (b, ref, site) => `Quote request ${ref} – ${site}`,
+  fileStem: (b, ref) => `QuoteRequest_${ref}`,
+  summary: (b, site) => [
+    ['Ref', ''], ['Name', `${b.name}${b.company ? ' (' + b.company + ')' : ''} – ${b.role}`],
+    ['Email / phone', `${b.email} / ${b.phone}`], ['Site', site], ['Project', `${b.projectType} – ${b.buildingUse}`],
+    ['Description', b.description], ['Target start', b.startDate || 'Not given'],
+  ],
+  alert: b => b.hrbCheck === 'Yes' ? 'Enquirer indicates this may be a HIGHER RISK BUILDING (BSR scope).' : '',
+  confirmTo: b => b.email,
+  confirmName: b => b.name,
+  confirmSubject: (b, ref) => `We have received your quote request – ${ref}`,
+  confirmText: (site, ref) => `thank you for your enquiry about <b>${site}</b> (ref ${ref}). We will review the details and come back to you with a fee proposal shortly.`,
+  envTo: 'MAIL_TO_QUOTES',
+};

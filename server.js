@@ -28,6 +28,9 @@ const FROM = () => process.env.MAIL_FROM || process.env.SMTP_USER;
 const app = express();
 app.set('trust proxy', 1);
 app.disable('x-powered-by');
+// Health check for the hosting platform (must answer without the password)
+app.get('/healthz', (req, res) => res.type('text').send('ok'));
+
 // Optional password gate for sharing a preview (set PREVIEW_USER / PREVIEW_PASSWORD in .env)
 if (process.env.PREVIEW_PASSWORD) {
   const want = 'Basic ' + Buffer.from(`${process.env.PREVIEW_USER || 'review'}:${process.env.PREVIEW_PASSWORD}`).toString('base64');

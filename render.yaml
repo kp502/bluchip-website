@@ -16,7 +16,7 @@ services:
       - key: PREVIEW_USER
         value: review
       - key: PREVIEW_PASSWORD
-        sync: false        # you'll be asked to type this in Render's dashboard (e.g. OliWood5)
+        sync: false        # you will be asked to type this in Render's dashboard
       - key: MAIL_TO
         value: oliver@bc-compliance.co.uk,kelly_pete@icloud.com
       - key: MAIL_TO_QUOTES

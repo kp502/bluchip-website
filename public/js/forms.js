@@ -42,25 +42,52 @@
   sync();
 
   function label(s, f) { return f.label.length < 30 ? s.title.replace(/^\d+\. /, '') + ' – ' + f.label : f.label.replace(/^[a-z]\) /, ''); }
-  function validate() {
-    form.querySelectorAll('.invalid').forEach(function (e) { e.classList.remove('invalid'); });
-    var errs = [];
-    def.sections.forEach(function (s) { s.fields.forEach(function (f) {
-      if (f.type === 'note' || !f.required || !C.visible(f, get)) return;
-      if (!get(f.id)) { errs.push(label(s, f) + ' is required'); var n = $('[data-f="' + f.id + '"]', form); n && n.classList.add('invalid'); }
-      else if (f.type === 'email' && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(get(f.id))) { errs.push(label(s, f) + ': invalid email address'); $('[data-f="' + f.id + '"]', form).classList.add('invalid'); }
-    }); });
-    (def.requireOneOf || []).forEach(function (r) { if (!r.ids.some(function (i) { return get(i); })) errs.push(r.message); });
-    return errs;
+  var EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+  // Mark one field as invalid (red outline + short message under it). Never touches what the user typed.
+  function mark(id, msg) {
+    var n = $('[data-f="' + id + '"]', form); if (!n) return null;
+    n.classList.add('invalid');
+    if (!n.querySelector('.ferr')) { var m = document.createElement('div'); m.className = 'ferr'; m.setAttribute('role', 'alert'); n.appendChild(m); }
+    n.querySelector('.ferr').textContent = msg;
+    return n;
   }
-  function showErrors(list) {
+  function unmark(n) { n.classList.remove('invalid'); var m = n.querySelector('.ferr'); if (m) m.remove(); }
+  function clearMarks() { form.querySelectorAll('.invalid').forEach(unmark); }
+  // As soon as someone fixes a highlighted field, its highlight goes away.
+  function onFix(e) { var n = e.target.closest && e.target.closest('[data-f]'); if (n && n.classList.contains('invalid')) unmark(n); }
+  form.addEventListener('input', onFix); form.addEventListener('change', onFix);
+
+  function validate() {
+    clearMarks();
+    var errs = [], ids = [];
+    def.sections.forEach(function (s) { s.fields.forEach(function (f) {
+      if (f.type === 'note' || !C.visible(f, get)) return;
+      var v = get(f.id);
+      if (f.required && !v) { errs.push(label(s, f) + ' is required'); ids.push(f.id); mark(f.id, f.type === 'yesno' || f.type === 'check' || f.type === 'select' ? 'Please choose an option' : 'This field is required'); }
+      else if (f.type === 'email' && v && !EMAIL.test(v)) { errs.push(label(s, f) + ': invalid email address'); ids.push(f.id); mark(f.id, 'Please enter a valid email address'); }
+    }); });
+    (def.requireOneOf || []).forEach(function (r) {
+      if (!r.ids.some(function (i) { return get(i); })) { errs.push(r.message); r.ids.forEach(function (i) { ids.push(i); mark(i, 'Please provide at least one of these emails'); }); }
+    });
+    return { errs: errs, ids: ids };
+  }
+  function showErrors(list, ids) {
     var b = $('#errors', form);
-    b.innerHTML = '<strong>Please check the following:</strong><ul>' + list.map(function (e) { return '<li>' + esc(e) + '</li>'; }).join('') + '</ul>';
-    b.classList.remove('hidden'); b.focus(); b.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    var n = (ids || []).length;
+    b.innerHTML = '<strong>' + (n ? 'Some required information is missing.' : 'Please check the following:') + '</strong> ' +
+      (n ? 'Your other answers have been kept – just complete the ' + (n === 1 ? 'field' : n + ' fields') + ' highlighted in red.' : '') +
+      '<ul>' + list.map(function (e) { return '<li>' + esc(e) + '</li>'; }).join('') + '</ul>';
+    b.classList.remove('hidden');
+    var first = n ? $('.invalid', form) : null;
+    if (first) {
+      first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      var i = first.querySelector('input,textarea,select'); if (i) { try { i.focus({ preventScroll: true }); } catch (x) { i.focus(); } }
+    } else { b.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
   }
   form.addEventListener('submit', function (e) {
     e.preventDefault(); $('#errors', form).classList.add('hidden');
-    var errs = validate(); if (errs.length) return showErrors(errs);
+    var v = validate(); if (v.errs.length) return showErrors(v.errs, v.ids);
     var btn = $('#submit', form), txt = btn.textContent; btn.disabled = true; btn.textContent = 'SENDING…';
     fetch(API + '/api/submit/' + def.id, { method: 'POST', body: new FormData(form) })
       .then(function (r) { return r.json().catch(function () { return { ok: false, errors: ['Unexpected response from the server.'] }; }); })
@@ -69,7 +96,11 @@
           var done = document.getElementById('form-done'); if (d.ref) { var r = done.querySelector('.ref'); if (r) r.textContent = d.ref; }
           form.classList.add('hidden'); var intro = document.getElementById('form-intro'); intro && intro.classList.add('hidden');
           done.classList.remove('hidden'); done.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        } else showErrors(d.errors || ['Something went wrong.']);
+        } else {
+          clearMarks();
+          (d.fields || []).forEach(function (id) { mark(id, 'Please check this field'); });
+          showErrors(d.errors || ['Something went wrong.'], d.fields);
+        }
       })
       .catch(function () { showErrors(['We could not reach the server. Please try again, or call 07775 507073 / email info@bc-compliance.co.uk.']); })
       .then(function () { btn.disabled = false; btn.textContent = txt; });

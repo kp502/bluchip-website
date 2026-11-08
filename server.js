@@ -70,18 +70,20 @@ const labelOf = (s, f) => f.label.length < 30 ? `${s.title.replace(/^\d+\. /, ''
 
 function validate(form, body) {
   const errors = [];
+  const fields = [];
   for (const s of form.sections) for (const f of s.fields.filter(isInput)) {
     if (!shown(f, body)) continue;
     const v = body[f.id];
     const empty = f.type === 'check' ? !v : !String(v ?? '').trim();
-    if (f.required && empty) errors.push(`${labelOf(s, f)} is required`);
-    if (f.type === 'email' && v && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) errors.push(`${labelOf(s, f)}: invalid email address`);
-    if (f.type === 'select' && v && !f.options.includes(v)) errors.push(`${labelOf(s, f)}: invalid choice`);
-    if (f.type === 'yesno' && v && !['Yes', 'No'].includes(v)) errors.push(`${labelOf(s, f)}: invalid choice`);
-    if (String(v ?? '').length > 4000) errors.push(`${labelOf(s, f)} is too long`);
+    const bad = (msg) => { errors.push(`${labelOf(s, f)}${msg}`); fields.push(f.id); };
+    if (f.required && empty) bad(' is required');
+    else if (f.type === 'email' && v && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) bad(': invalid email address');
+    else if (f.type === 'select' && v && !f.options.includes(v)) bad(': invalid choice');
+    else if (f.type === 'yesno' && v && !['Yes', 'No'].includes(v)) bad(': invalid choice');
+    else if (String(v ?? '').length > 4000) bad(' is too long');
   }
-  for (const r of form.requireOneOf) if (!r.ids.some(i => String(body[i] || '').trim())) errors.push(r.message);
-  return [...new Set(errors)];
+  for (const r of form.requireOneOf) if (!r.ids.some(i => String(body[i] || '').trim())) { errors.push(r.message); fields.push(...r.ids); }
+  return { errors: [...new Set(errors)], fields: [...new Set(fields)] };
 }
 
 async function buildWorkbook(form, body, files, ref) {
@@ -135,8 +137,8 @@ app.post('/api/submit/:form', limiter, (req, res, next) => {
     const body = req.body || {};
     if (body.website) return res.json({ ok: true }); // honeypot – bots get a silent success
     for (const k of Object.keys(body)) if (typeof body[k] !== 'string') delete body[k];
-    const errors = validate(form, body);
-    if (errors.length) return res.status(400).json({ ok: false, errors });
+    const { errors, fields } = validate(form, body);
+    if (errors.length) return res.status(400).json({ ok: false, errors, fields });
 
     const to = PREVIEW_MODE ? ['preview@localhost'] : list(process.env[form.envTo]).length ? list(process.env[form.envTo]) : FALLBACK_TO;
     if (!to.length) throw new Error(`No recipients configured (${form.envTo} or MAIL_TO)`);

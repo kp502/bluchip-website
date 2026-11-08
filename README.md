@@ -3,7 +3,7 @@
 A 9-page website in the Blu Chip look (slate navy / light blue / Montserrat) with:
 - **Request a Quote** form (`/request-quote.html`) – for new enquiries
 - **Appointment form** (`/appointment.html`) – the online version of the schedule attached to the fee quote letter (in the main menu – you can also send a pre-filled link with each quote: `/appointment.html?ref=BLUCHIPQ/2026/00117&fee=£4,400+VAT`)
-- Info pages: Home, Building Control, RBCA’s, Building Regs, How It Works & FAQs, Contact, Privacy, Cookies
+- Info pages: Home, Building Control, RBCAs, Building Regs, How It Works & FAQs, Contact, Privacy, Cookies
 
 Each submission is emailed **as an Excel file** (sheet 1 = formatted record, sheet 2 = one data row for a master log), with any uploaded drawings attached, to the addresses you set. The submitter gets an automatic "received" email.
 

@@ -5,7 +5,7 @@ const PAGES = path.join(__dirname, 'src/pages'), OUT = path.join(__dirname, 'pub
 const forms = { appointment: require('./forms/appointment'), quote: require('./forms/quote') };
 
 const NAV = [
-  ['index.html', 'Home'], ['building-control.html', 'Building Control'], ['rbca.html', 'RBCAs'],
+  ['index.html', 'Home'], ['building-control.html', 'Building Control'], ['rbca.html', 'RBCA’s'],
   ['building-regulations.html', 'Building Regs'], ['how-it-works.html', 'How It Works'], ['appointment.html', 'Appointment'], ['contact.html', 'Contact'],
 ];
 
